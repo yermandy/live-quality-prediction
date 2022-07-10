@@ -4,6 +4,8 @@ import numpy as np
 from detection import detect
 from model.cnn_fq import model
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+
   
 # define a video capture object 
 capture = cv2.VideoCapture(0) 
@@ -102,6 +104,9 @@ fontScale              = 1
 fontColor              = (0,0,255)
 lineType               = 2
 
+qualities = [0] * 100
+qualities_mean = [0] * 100
+
 while(True): 
       
     # Capture the video frame 
@@ -119,7 +124,7 @@ while(True):
         lm = landmarks[0].astype(np.int)
 
         x = preprocess_photo(frame, bbox)
-        output = net(x).squeeze()
+        quality = net(x).squeeze().item()
     
         cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 0, 255), 2)
 
@@ -129,12 +134,30 @@ while(True):
         cv2.circle(frame, (lm[6], lm[7]), 1, (0, 255, 0), 4)
         cv2.circle(frame, (lm[8], lm[9]), 1, (255, 0, 0), 4)
 
-        cv2.putText(frame, f'{output.item():.4f}', bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
+        cv2.putText(frame, f'{quality:.4f}', bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
         
-  
+        
+        qualities.pop(0)
+        qualities.append(quality)
+        
+        plt.cla()
+        plt.plot(qualities)
+        
+        N = 20
+        mean = np.convolve(qualities[-N:], np.ones(N)/N, mode='valid')
+        qualities_mean.pop(0)
+        qualities_mean.append(mean)
+        
+        plt.plot(qualities_mean)
+        
+        plt.ylim(0, 1)
+        # plt.show(qualities)
+        plt.pause(.001)
+        # plt.close()
     # Display the resulting frame 
     cv2.imshow('frame', frame) 
     # cv2.imwrite('detected.png', frame) 
+    
       
     if cv2.waitKey(1) == 27:
         break
